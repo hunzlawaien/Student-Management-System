@@ -1,8 +1,14 @@
+import { Navigate, Route, Routes } from "react-router-dom";
+import AppLayout from "./components/AppLayout";
+import Dashboard from "./pages/Dashboard";
+
 function App() {
   return (
-    <div>
-      <h1>Student Management System</h1>
-    </div>
+    <AppLayout>
+      <Routes>
+        <Route path="/" element={<Dashboard />} />
+      </Routes>
+    </AppLayout>
   );
 }
 
