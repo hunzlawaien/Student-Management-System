@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 
-function StudentForm({ onAddStudent, onClose }) {
+function StudentForm({ onAdd, onCancel, students = [] }) {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -19,6 +19,8 @@ function StudentForm({ onAddStudent, onClose }) {
       ...currentData,
       [name]: value,
     }));
+
+    setError("");
   }
 
   function handleSubmit(event) {
@@ -43,17 +45,45 @@ function StudentForm({ onAddStudent, onClose }) {
       return;
     }
 
-    onAddStudent(student);
+    if (!/^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s.'-]*$/.test(student.name)) {
+      setError("Please enter a valid name.");
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(student.email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
+    const duplicateRollNumber = students.some(
+      (existingStudent) =>
+        String(existingStudent.rollNumber).trim().toLowerCase() ===
+        student.rollNumber.toLowerCase(),
+    );
+
+    if (duplicateRollNumber) {
+      setError("This roll number is already assigned to a student.");
+      return;
+    }
+
+    onAdd({
+      ...student,
+      id: Date.now().toString(),
+      status: "Active",
+    });
   }
 
+  const inputClass =
+    "w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100";
+
   return (
-    <div className="mb-6 rounded-xl border border-gray-200 p-5">
+    <div className="mb-6 rounded-xl border border-gray-200 bg-white p-5">
       <div className="mb-5 flex items-center justify-between">
         <h3 className="text-lg font-semibold">Add New Student</h3>
 
         <button
           type="button"
-          onClick={onClose}
+          onClick={onCancel}
           className="rounded-lg p-2 hover:bg-gray-100"
           aria-label="Close student form"
         >
@@ -64,7 +94,7 @@ function StudentForm({ onAddStudent, onClose }) {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label htmlFor="name" className="mb-1 block text-sm font-medium">
-            Full Name
+            Full Name *
           </label>
           <input
             id="name"
@@ -72,13 +102,15 @@ function StudentForm({ onAddStudent, onClose }) {
             value={formData.name}
             onChange={handleChange}
             placeholder="Enter student's full name"
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-black"
+            className={inputClass}
+            maxLength={100}
+            required
           />
         </div>
 
         <div>
           <label htmlFor="email" className="mb-1 block text-sm font-medium">
-            Email Address
+            Email Address *
           </label>
           <input
             id="email"
@@ -87,21 +119,23 @@ function StudentForm({ onAddStudent, onClose }) {
             value={formData.email}
             onChange={handleChange}
             placeholder="student@example.com"
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-black"
+            className={inputClass}
+            maxLength={254}
+            required
           />
         </div>
 
         <div>
           <label htmlFor="grade" className="mb-1 block text-sm font-medium">
-            Class
+            Class *
           </label>
-
           <select
             id="grade"
             name="grade"
             value={formData.grade}
             onChange={handleChange}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2"
+            className={inputClass}
+            required
           >
             {Array.from({ length: 10 }, (_, index) => (
               <option key={index + 1} value={`Class ${index + 1}`}>
@@ -113,15 +147,15 @@ function StudentForm({ onAddStudent, onClose }) {
 
         <div>
           <label htmlFor="section" className="mb-1 block text-sm font-medium">
-            Section
+            Section *
           </label>
-
           <select
             id="section"
             name="section"
             value={formData.section}
             onChange={handleChange}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2"
+            className={inputClass}
+            required
           >
             <option value="A">Section A</option>
             <option value="B">Section B</option>
@@ -134,24 +168,29 @@ function StudentForm({ onAddStudent, onClose }) {
             htmlFor="rollNumber"
             className="mb-1 block text-sm font-medium"
           >
-            Roll Number
+            Roll Number *
           </label>
-
           <input
             id="rollNumber"
             name="rollNumber"
             value={formData.rollNumber}
             onChange={handleChange}
             placeholder="e.g. 5A002"
-            className="w-full rounded-lg border border-gray-300 px-3 py-2"
+            className={inputClass}
+            maxLength={30}
+            required
           />
         </div>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && (
+          <p role="alert" className="text-sm text-red-600">
+            {error}
+          </p>
+        )}
 
         <button
           type="submit"
-          className="rounded-lg bg-black px-5 py-2.5 text-sm font-medium text-white hover:bg-gray-800"
+          className="rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-emerald-700"
         >
           Add Student
         </button>

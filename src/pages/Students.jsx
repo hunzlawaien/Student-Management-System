@@ -10,6 +10,8 @@ import EditForm from "../components/EditForm";
 function Students() {
   const { students, setStudents } = useStudents();
   const navigate = useNavigate();
+  const [currentPage, setCurrentPage] = useState(1);
+  const studentsPerPage = 10;
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedGrade, setSelectedGrade] = useState("All");
@@ -68,6 +70,15 @@ function Students() {
     return matchesSearch && matchesGrade && matchesSection;
   });
 
+  const totalPages = Math.ceil(filteredStudents.length / studentsPerPage);
+
+  const startIndex = (currentPage - 1) * studentsPerPage;
+
+  const currentStudents = filteredStudents.slice(
+    startIndex,
+    startIndex + studentsPerPage,
+  );
+
   return (
     <div className="space-y-6">
       {/* Page heading */}
@@ -107,6 +118,7 @@ function Students() {
 
       {showForm && (
         <StudentForm
+          students={students}
           onAdd={handleAddStudent}
           onCancel={() => {
             setShowForm(false);
@@ -120,6 +132,7 @@ function Students() {
       {editingStudent && (
         <EditForm
           student={editingStudent}
+          students={students}
           onSave={handleSaveEdit}
           onCancel={() => setEditingStudent(null)}
         />
@@ -127,23 +140,60 @@ function Students() {
 
       <StudentFilters
         searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
+        setSearchTerm={(value) => {
+          setSearchTerm(value);
+          setCurrentPage(1);
+        }}
         selectedGrade={selectedGrade}
-        setSelectedGrade={setSelectedGrade}
+        setSelectedGrade={(value) => {
+          setSelectedGrade(value);
+          setCurrentPage(1);
+        }}
         selectedSection={selectedSection}
-        setSelectedSection={setSelectedSection}
+        setSelectedSection={(value) => {
+          setSelectedSection(value);
+          setCurrentPage(1);
+        }}
       />
 
       <StudentTable
-        students={filteredStudents}
+        students={currentStudents}
         onView={handleViewStudent}
         onEdit={setEditingStudent}
         onDelete={handleDeleteStudent}
       />
 
-      <p className="text-sm text-gray-500">
-        Showing {filteredStudents.length} of {students.length} students
-      </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-gray-500">
+          Showing {filteredStudents.length === 0 ? 0 : startIndex + 1} to{" "}
+          {Math.min(startIndex + studentsPerPage, filteredStudents.length)} of{" "}
+          {filteredStudents.length} students
+        </p>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setCurrentPage((page) => page - 1)}
+            disabled={currentPage === 1}
+            className="rounded-lg border border-gray-200 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Previous
+          </button>
+
+          <span className="px-2 text-sm text-gray-600">
+            Page {totalPages === 0 ? 0 : currentPage} of {totalPages}
+          </span>
+
+          <button
+            type="button"
+            onClick={() => setCurrentPage((page) => page + 1)}
+            disabled={currentPage >= totalPages}
+            className="rounded-lg border border-gray-200 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Next
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 
-function EditForm({ student, onSave, onCancel }) {
+function EditForm({ student, students = [], onSave, onCancel }) {
   const [formData, setFormData] = useState({
     name: student.name || "",
     email: student.email || "",
@@ -27,25 +27,48 @@ function EditForm({ student, onSave, onCancel }) {
   function handleSubmit(event) {
     event.preventDefault();
 
+    const updatedStudent = {
+      ...student,
+      ...formData,
+      name: formData.name.trim(),
+      email: formData.email.trim(),
+      rollNumber: formData.rollNumber.trim(),
+    };
+
     if (
-      !formData.name.trim() ||
-      !formData.email.trim() ||
-      !formData.rollNumber.trim()
+      !updatedStudent.name ||
+      !updatedStudent.email ||
+      !updatedStudent.grade ||
+      !updatedStudent.section ||
+      !updatedStudent.rollNumber
     ) {
       setError("Please fill in all required fields.");
       return;
     }
 
-    const result = onSave({
-      ...formData,
-      name: formData.name.trim(),
-      email: formData.email.trim(),
-      rollNumber: formData.rollNumber.trim(),
-    });
-
-    if (result !== false) {
-      onCancel();
+    if (!/^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s.'-]*$/.test(updatedStudent.name)) {
+      setError("Please enter a valid name.");
+      return;
     }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(updatedStudent.email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
+    const duplicateRollNumber = students.some(
+      (existingStudent) =>
+        String(existingStudent.id) !== String(student.id) &&
+        String(existingStudent.rollNumber).trim().toLowerCase() ===
+          updatedStudent.rollNumber.toLowerCase(),
+    );
+
+    if (duplicateRollNumber) {
+      setError("This roll number is already assigned to another student.");
+      return;
+    }
+
+    onSave(updatedStudent);
   }
 
   const inputClass =
@@ -74,54 +97,74 @@ function EditForm({ student, onSave, onCancel }) {
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="edit-name"
+              className="mb-1 block text-sm font-medium text-gray-700"
+            >
               Full Name *
             </label>
             <input
+              id="edit-name"
               name="name"
               value={formData.name}
               onChange={handleChange}
               className={inputClass}
+              maxLength={100}
               required
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="edit-email"
+              className="mb-1 block text-sm font-medium text-gray-700"
+            >
               Email *
             </label>
             <input
+              id="edit-email"
               name="email"
               type="email"
               value={formData.email}
               onChange={handleChange}
               className={inputClass}
+              maxLength={254}
               required
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="edit-rollNumber"
+              className="mb-1 block text-sm font-medium text-gray-700"
+            >
               Roll Number *
             </label>
             <input
+              id="edit-rollNumber"
               name="rollNumber"
               value={formData.rollNumber}
               onChange={handleChange}
               className={inputClass}
+              maxLength={30}
               required
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="edit-grade"
+              className="mb-1 block text-sm font-medium text-gray-700"
+            >
               Class *
             </label>
             <select
+              id="edit-grade"
               name="grade"
               value={formData.grade}
               onChange={handleChange}
               className={inputClass}
+              required
             >
               {Array.from({ length: 10 }, (_, index) => (
                 <option key={index + 1} value={`Class ${index + 1}`}>
@@ -132,14 +175,19 @@ function EditForm({ student, onSave, onCancel }) {
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="edit-section"
+              className="mb-1 block text-sm font-medium text-gray-700"
+            >
               Section *
             </label>
             <select
+              id="edit-section"
               name="section"
               value={formData.section}
               onChange={handleChange}
               className={inputClass}
+              required
             >
               <option value="A">Section A</option>
               <option value="B">Section B</option>
@@ -148,10 +196,14 @@ function EditForm({ student, onSave, onCancel }) {
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="edit-status"
+              className="mb-1 block text-sm font-medium text-gray-700"
+            >
               Status
             </label>
             <select
+              id="edit-status"
               name="status"
               value={formData.status}
               onChange={handleChange}
@@ -163,7 +215,11 @@ function EditForm({ student, onSave, onCancel }) {
           </div>
         </div>
 
-        {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
+        {error && (
+          <p role="alert" className="mt-4 text-sm text-red-600">
+            {error}
+          </p>
+        )}
 
         <div className="mt-5 flex justify-end gap-3">
           <button
