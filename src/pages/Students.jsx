@@ -1,6 +1,6 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Plus, Users } from "lucide-react";
-
 import { useStudents } from "../context/StudentContext";
 import StudentForm from "../components/StudentForm";
 import StudentFilters from "../components/StudentFilters";
@@ -9,6 +9,8 @@ import EditForm from "../components/EditForm";
 
 function Students() {
   const { students, setStudents } = useStudents();
+  const navigate = useNavigate();
+
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedGrade, setSelectedGrade] = useState("All");
   const [selectedSection, setSelectedSection] = useState("All");
@@ -16,80 +18,49 @@ function Students() {
   const [editingStudent, setEditingStudent] = useState(null);
   const [error, setError] = useState("");
 
-  function handleAddStudent(studentData) {
-    const duplicate = students.some(
-      (student) =>
-        student.email.toLowerCase() === studentData.email.toLowerCase() ||
-        student.rollNumber.toLowerCase() ===
-          studentData.rollNumber.toLowerCase(),
-    );
+  const handleAddStudent = (newStudent) => {
+    setStudents((currentStudents) => [...currentStudents, newStudent]);
 
-    if (duplicate) {
-      setError("A student with this email or roll number already exists.");
-      return;
-    }
-
-    setStudents((previousStudents) => [
-      ...previousStudents,
-      {
-        id: Date.now(),
-        ...studentData,
-        status: "Active",
-      },
-    ]);
-
-    setError("");
     setShowForm(false);
-  }
+    setError("");
+  };
 
-  function handleDeleteStudent(studentId) {
+  const handleDeleteStudent = (studentId) => {
     const confirmed = window.confirm(
       "Are you sure you want to delete this student?",
     );
 
     if (!confirmed) return;
 
-    setStudents((previousStudents) =>
-      previousStudents.filter((student) => student.id !== studentId),
+    setStudents((currentStudents) =>
+      currentStudents.filter((student) => student.id !== studentId),
     );
-  }
+  };
 
-  function handleSaveEdit(updatedStudent) {
-    const duplicate = students.some(
-      (student) =>
-        student.id !== editingStudent.id &&
-        (student.email.toLowerCase() === updatedStudent.email.toLowerCase() ||
-          student.rollNumber.toLowerCase() ===
-            updatedStudent.rollNumber.toLowerCase()),
-    );
-
-    if (duplicate) {
-      window.alert("Another student already uses this email or roll number.");
-      return false;
-    }
-
-    setStudents((previousStudents) =>
-      previousStudents.map((student) =>
-        student.id === editingStudent.id
-          ? { ...student, ...updatedStudent }
-          : student,
+  const handleSaveEdit = (updatedStudent) => {
+    setStudents((currentStudents) =>
+      currentStudents.map((student) =>
+        student.id === updatedStudent.id ? updatedStudent : student,
       ),
     );
 
     setEditingStudent(null);
-    return true;
-  }
+  };
+
+  const handleViewStudent = (student) => {
+    navigate(`/students/${student.id}`);
+  };
 
   const filteredStudents = students.filter((student) => {
-    const search = searchTerm.toLowerCase().trim();
-
     const matchesSearch =
-      student.name.toLowerCase().includes(search) ||
-      student.email.toLowerCase().includes(search) ||
-      String(student.rollNumber).toLowerCase().includes(search);
+      student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(student.rollNumber || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      (student.email || "").toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesGrade =
-      selectedGrade === "All" || student.grade === selectedGrade;
+      selectedGrade === "All" || String(student.grade) === selectedGrade;
 
     const matchesSection =
       selectedSection === "All" || student.section === selectedSection;
@@ -99,83 +70,55 @@ function Students() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+      {/* Page heading */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Students</h1>
+
           <p className="mt-1 text-sm text-gray-500">
-            Manage students across classes 1 to 10.
+            Manage student records, academic details, and enrollment.
           </p>
         </div>
 
         <button
           type="button"
           onClick={() => {
-            setShowForm((previous) => !previous);
-            setEditingStudent(null);
             setError("");
+            setShowForm(true);
           }}
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-emerald-700"
         >
           <Plus size={18} />
           Add Student
         </button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border border-gray-200 bg-white p-5">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-blue-50 p-3 text-blue-600">
-              <Users size={22} />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Total Students</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {students.length}
-              </p>
-            </div>
-          </div>
+      <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-5">
+        <div className="rounded-lg bg-emerald-50 p-3">
+          <Users size={24} className="text-emerald-700" />
         </div>
 
-        <div className="rounded-xl border border-gray-200 bg-white p-5">
-          <p className="text-sm text-gray-500">Active Students</p>
-          <p className="mt-2 text-2xl font-bold text-gray-900">
-            {students.filter((student) => student.status !== "Inactive").length}
-          </p>
-        </div>
+        <div>
+          <p className="text-sm text-gray-500">Total Students</p>
 
-        <div className="rounded-xl border border-gray-200 bg-white p-5">
-          <p className="text-sm text-gray-500">Filtered Results</p>
-          <p className="mt-2 text-2xl font-bold text-gray-900">
-            {filteredStudents.length}
-          </p>
+          <p className="text-2xl font-bold text-gray-900">{students.length}</p>
         </div>
       </div>
 
       {showForm && (
-        <div className="rounded-xl border border-gray-200 bg-white p-5">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">
-            Add New Student
-          </h2>
-
-          {error && (
-            <p className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-600">
-              {error}
-            </p>
-          )}
-
-          <StudentForm
-            onAddStudent={handleAddStudent}
-            onClose={() => {
-              setShowForm(false);
-              setError("");
-            }}
-          />
-        </div>
+        <StudentForm
+          onAdd={handleAddStudent}
+          onCancel={() => {
+            setShowForm(false);
+            setError("");
+          }}
+          error={error}
+          setError={setError}
+        />
       )}
 
       {editingStudent && (
         <EditForm
-          key={editingStudent.id}
           student={editingStudent}
           onSave={handleSaveEdit}
           onCancel={() => setEditingStudent(null)}
@@ -184,22 +127,23 @@ function Students() {
 
       <StudentFilters
         searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
+        setSearchTerm={setSearchTerm}
         selectedGrade={selectedGrade}
-        onGradeChange={setSelectedGrade}
+        setSelectedGrade={setSelectedGrade}
         selectedSection={selectedSection}
-        onSectionChange={setSelectedSection}
+        setSelectedSection={setSelectedSection}
       />
 
       <StudentTable
         students={filteredStudents}
-        onEdit={(student) => {
-          setShowForm(false);
-          setError("");
-          setEditingStudent(student);
-        }}
+        onView={handleViewStudent}
+        onEdit={setEditingStudent}
         onDelete={handleDeleteStudent}
       />
+
+      <p className="text-sm text-gray-500">
+        Showing {filteredStudents.length} of {students.length} students
+      </p>
     </div>
   );
 }

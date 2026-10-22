@@ -1,6 +1,6 @@
-import { Pencil, Trash2, Users } from "lucide-react";
+import { Eye, Pencil, Trash2, Users } from "lucide-react";
 
-function StudentTable({ students, onEdit, onDelete }) {
+function StudentTable({ students, onView, onEdit, onDelete }) {
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
       <div className="overflow-x-auto">
@@ -45,9 +45,9 @@ function StudentTable({ students, onEdit, onDelete }) {
                 <td className="px-5 py-4">
                   <span
                     className={`rounded-full px-3 py-1 text-xs font-medium ${
-                      student.status === "Active"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-gray-100 text-gray-600"
+                      student.status === "Inactive"
+                        ? "bg-gray-100 text-gray-600"
+                        : "bg-green-100 text-green-700"
                     }`}
                   >
                     {student.status || "Active"}
@@ -58,8 +58,19 @@ function StudentTable({ students, onEdit, onDelete }) {
                   <div className="flex justify-end gap-2">
                     <button
                       type="button"
+                      onClick={() => onView(student)}
+                      aria-label={`View ${student.name}`}
+                      title="View student"
+                      className="rounded-lg p-2 text-emerald-600 hover:bg-emerald-50"
+                    >
+                      <Eye size={17} />
+                    </button>
+
+                    <button
+                      type="button"
                       onClick={() => onEdit(student)}
                       aria-label={`Edit ${student.name}`}
+                      title="Edit student"
                       className="rounded-lg p-2 text-blue-600 hover:bg-blue-50"
                     >
                       <Pencil size={17} />
@@ -69,6 +80,7 @@ function StudentTable({ students, onEdit, onDelete }) {
                       type="button"
                       onClick={() => onDelete(student.id)}
                       aria-label={`Delete ${student.name}`}
+                      title="Delete student"
                       className="rounded-lg p-2 text-red-600 hover:bg-red-50"
                     >
                       <Trash2 size={17} />
