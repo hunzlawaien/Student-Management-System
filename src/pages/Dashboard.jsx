@@ -1,8 +1,8 @@
 import { Users, UserCheck, UserX } from "lucide-react";
-import studentsData from "../data/students";
+import { useStudents } from "../context/StudentContext";
 
 function Dashboard() {
-  const students = studentsData;
+  const { students } = useStudents();
 
   const totalStudents = students.length;
 

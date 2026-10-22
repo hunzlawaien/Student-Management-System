@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { Plus, Users } from "lucide-react";
 
-import studentsData from "../data/students";
+import { useStudents } from "../context/StudentContext";
 import StudentForm from "../components/StudentForm";
 import StudentFilters from "../components/StudentFilters";
 import StudentTable from "../components/StudentTable";
 import EditForm from "../components/EditForm";
 
 function Students() {
-  const [students, setStudents] = useState(studentsData);
+  const { students, setStudents } = useStudents();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedGrade, setSelectedGrade] = useState("All");
   const [selectedSection, setSelectedSection] = useState("All");
