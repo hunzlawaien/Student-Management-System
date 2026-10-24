@@ -7,7 +7,7 @@ function StudentDetails() {
   const navigate = useNavigate();
   const { students } = useStudents();
 
-  const student = students.find((item) => String(item.id) === id);
+  const student = students.find((item) => String(item._id || item.id) === id);
 
   if (!student) {
     return (

@@ -5,13 +5,14 @@ function EditForm({ student, students = [], onSave, onCancel }) {
   const [formData, setFormData] = useState({
     name: student.name || "",
     email: student.email || "",
-    grade: student.grade || "Class 1",
+    grade: String(student.grade || 1),
     section: student.section || "A",
     rollNumber: student.rollNumber || "",
     status: student.status || "Active",
   });
 
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
 
   function handleChange(event) {
     const { name, value } = event.target;
@@ -24,55 +25,75 @@ function EditForm({ student, students = [], onSave, onCancel }) {
     setError("");
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
+    setError("");
 
-    const updatedStudent = {
-      ...student,
-      ...formData,
-      name: formData.name.trim(),
-      email: formData.email.trim(),
-      rollNumber: formData.rollNumber.trim(),
-    };
+    const name = formData.name.trim();
+    const email = formData.email.trim().toLowerCase();
+    const rollNumber = formData.rollNumber.trim();
 
     if (
-      !updatedStudent.name ||
-      !updatedStudent.email ||
-      !updatedStudent.grade ||
-      !updatedStudent.section ||
-      !updatedStudent.rollNumber
+      !name ||
+      !email ||
+      !rollNumber ||
+      !formData.grade ||
+      !formData.section
     ) {
       setError("Please fill in all required fields.");
       return;
     }
 
-    if (!/^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s.'-]*$/.test(updatedStudent.name)) {
+    if (!/^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s.'-]*$/.test(name)) {
       setError("Please enter a valid name.");
       return;
     }
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(updatedStudent.email)) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setError("Please enter a valid email address.");
       return;
     }
 
+    const studentId = String(student._id || student.id);
+
     const duplicateRollNumber = students.some(
       (existingStudent) =>
-        String(existingStudent.id) !== String(student.id) &&
+        String(existingStudent._id || existingStudent.id) !== studentId &&
+        Number(existingStudent.grade) === Number(formData.grade) &&
+        existingStudent.section === formData.section &&
         String(existingStudent.rollNumber).trim().toLowerCase() ===
-          updatedStudent.rollNumber.toLowerCase(),
+          rollNumber.toLowerCase(),
     );
 
     if (duplicateRollNumber) {
-      setError("This roll number is already assigned to another student.");
+      setError(
+        "This roll number is already assigned in this class and section.",
+      );
       return;
     }
 
-    onSave(updatedStudent);
+    const updatedStudent = {
+      ...student,
+      name,
+      email,
+      rollNumber,
+      grade: Number(formData.grade),
+      section: formData.section,
+      status: formData.status,
+    };
+
+    try {
+      setSaving(true);
+      await onSave(updatedStudent);
+    } catch (error) {
+      setError(error.message || "Unable to update student.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   const inputClass =
-    "w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100";
+    "w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100";
 
   return (
     <div className="mb-6 rounded-xl border border-gray-200 bg-white p-5">
@@ -167,7 +188,7 @@ function EditForm({ student, students = [], onSave, onCancel }) {
               required
             >
               {Array.from({ length: 10 }, (_, index) => (
-                <option key={index + 1} value={`Class ${index + 1}`}>
+                <option key={index + 1} value={String(index + 1)}>
                   Class {index + 1}
                 </option>
               ))}
@@ -225,16 +246,18 @@ function EditForm({ student, students = [], onSave, onCancel }) {
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            disabled={saving}
+            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
           >
             Cancel
           </button>
 
           <button
             type="submit"
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            disabled={saving}
+            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Save Changes
+            {saving ? "Saving..." : "Save Changes"}
           </button>
         </div>
       </form>

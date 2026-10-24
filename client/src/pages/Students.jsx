@@ -24,52 +24,104 @@ function Students() {
 
   const { canAddStudent, canEditStudent, canDeleteStudent } = usePermissions();
 
-  const handleAddStudent = (newStudent) => {
-    setStudents((currentStudents) => [...currentStudents, newStudent]);
+  const handleAddStudent = (savedStudent) => {
+    setStudents((currentStudents) => [savedStudent, ...currentStudents]);
 
     setShowForm(false);
     setError("");
     setCurrentPage(1);
   };
 
-  const handleDeleteStudent = (studentId) => {
+  const handleDeleteStudent = async (studentId) => {
     const confirmed = window.confirm(
       "Are you sure you want to delete this student?",
     );
 
     if (!confirmed) return;
 
-    setStudents((currentStudents) =>
-      currentStudents.filter((student) => student.id !== studentId),
-    );
+    try {
+      setError("");
+
+      if (!studentId || studentId === "undefined") {
+        throw new Error("Student ID is missing. Cannot delete this record.");
+      }
+
+      const response = await fetch(
+        `http://localhost:5000/api/students/${studentId}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to delete student.");
+      }
+
+      setStudents((currentStudents) =>
+        currentStudents.filter(
+          (student) => String(student._id || student.id) !== String(studentId),
+        ),
+      );
+    } catch (error) {
+      setError(error.message || "Unable to delete student.");
+    }
   };
 
-  const handleSaveEdit = (updatedStudent) => {
+  const handleSaveEdit = async (updatedStudent) => {
+    const studentId = updatedStudent._id || updatedStudent.id;
+
+    const response = await fetch(
+      `http://localhost:5000/api/students/${studentId}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updatedStudent),
+      },
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to update student.");
+    }
+
     setStudents((currentStudents) =>
       currentStudents.map((student) =>
-        student.id === updatedStudent.id ? updatedStudent : student,
+        String(student._id || student.id) === String(studentId)
+          ? data
+          : student,
       ),
     );
 
     setEditingStudent(null);
+    setError("");
   };
 
   const handleViewStudent = (student) => {
-    navigate(`/students/${student.id}`);
+    navigate(`/students/${student._id || student.id}`);
   };
 
   const filteredStudents = students.filter((student) => {
-    const search = searchTerm.toLowerCase();
+    const search = searchTerm.trim().toLowerCase();
 
-    const matchesSearch =
-      student.name?.toLowerCase().includes(search) ||
-      String(student.rollNumber || "")
+    const matchesSearch = [
+      student.name,
+      student.email,
+      student.rollNumber,
+      student.section,
+    ].some((value) =>
+      String(value || "")
         .toLowerCase()
-        .includes(search) ||
-      (student.email || "").toLowerCase().includes(search);
+        .includes(search),
+    );
 
     const matchesGrade =
-      selectedGrade === "All" || String(student.grade) === selectedGrade;
+      selectedGrade === "All" ||
+      Number(student.grade) === Number(selectedGrade);
 
     const matchesSection =
       selectedSection === "All" || student.section === selectedSection;

@@ -2,11 +2,11 @@ import { Search } from "lucide-react";
 
 function StudentFilters({
   searchTerm,
-  onSearchChange,
+  setSearchTerm,
   selectedGrade,
-  onGradeChange,
+  setSelectedGrade,
   selectedSection,
-  onSectionChange,
+  setSelectedSection,
 }) {
   return (
     <div className="mb-6 grid grid-cols-1 gap-4 rounded-xl border border-gray-200 bg-white p-4 md:grid-cols-3">
@@ -28,9 +28,9 @@ function StudentFilters({
             id="student-search"
             type="text"
             value={searchTerm}
-            onChange={(event) => onSearchChange(event.target.value)}
+            onChange={(event) => setSearchTerm(event.target.value)}
             placeholder="Name, email or roll number"
-            className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
           />
         </div>
       </div>
@@ -46,13 +46,13 @@ function StudentFilters({
         <select
           id="grade-filter"
           value={selectedGrade}
-          onChange={(event) => onGradeChange(event.target.value)}
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-blue-500"
+          onChange={(event) => setSelectedGrade(event.target.value)}
+          className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-emerald-500"
         >
           <option value="All">All Classes</option>
 
           {Array.from({ length: 10 }, (_, index) => (
-            <option key={index + 1} value={`Class ${index + 1}`}>
+            <option key={index + 1} value={String(index + 1)}>
               Class {index + 1}
             </option>
           ))}
@@ -70,8 +70,8 @@ function StudentFilters({
         <select
           id="section-filter"
           value={selectedSection}
-          onChange={(event) => onSectionChange(event.target.value)}
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-blue-500"
+          onChange={(event) => setSelectedSection(event.target.value)}
+          className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-emerald-500"
         >
           <option value="All">All Sections</option>
           <option value="A">Section A</option>

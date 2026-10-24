@@ -19,7 +19,7 @@ function StudentTable({ students, onView, onEdit, onDelete }) {
 
           <tbody className="divide-y divide-gray-100">
             {students.map((student) => (
-              <tr key={student.id} className="hover:bg-gray-50">
+              <tr key={student._id || student.id} className="hover:bg-gray-50">
                 <td className="px-5 py-4">
                   <span className="font-medium text-gray-900">
                     {student.name}
@@ -81,7 +81,7 @@ function StudentTable({ students, onView, onEdit, onDelete }) {
                     {onDelete && (
                       <button
                         type="button"
-                        onClick={() => onDelete(student.id)}
+                        onClick={() => onDelete(student._id || student.id)}
                         aria-label={`Delete ${student.name}`}
                         title="Delete student"
                         className="rounded-lg p-2 text-red-600 hover:bg-red-50"

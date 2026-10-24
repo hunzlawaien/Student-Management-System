@@ -1,16 +1,19 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 
+const API_URL = "http://localhost:5000/api/students";
+
 function StudentForm({ onAdd, onCancel, students = [] }) {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    grade: "Class 1",
+    grade: "1",
     section: "A",
     rollNumber: "",
   });
 
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
 
   function handleChange(event) {
     const { name, value } = event.target;
@@ -23,13 +26,13 @@ function StudentForm({ onAdd, onCancel, students = [] }) {
     setError("");
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
 
     const student = {
       name: formData.name.trim(),
       email: formData.email.trim(),
-      grade: formData.grade,
+      grade: Number(formData.grade),
       section: formData.section,
       rollNumber: formData.rollNumber.trim(),
     };
@@ -58,19 +61,42 @@ function StudentForm({ onAdd, onCancel, students = [] }) {
     const duplicateRollNumber = students.some(
       (existingStudent) =>
         String(existingStudent.rollNumber).trim().toLowerCase() ===
-        student.rollNumber.toLowerCase(),
+          student.rollNumber.toLowerCase() &&
+        Number(existingStudent.grade) === student.grade &&
+        existingStudent.section === student.section,
     );
 
     if (duplicateRollNumber) {
-      setError("This roll number is already assigned to a student.");
+      setError(
+        "This roll number is already assigned in this class and section.",
+      );
       return;
     }
 
-    onAdd({
-      ...student,
-      id: Date.now().toString(),
-      status: "Active",
-    });
+    try {
+      setSaving(true);
+      setError("");
+
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(student),
+      });
+
+      const savedStudent = await response.json();
+
+      if (!response.ok) {
+        throw new Error(savedStudent.message || "Failed to add student.");
+      }
+
+      await onAdd(savedStudent);
+    } catch (error) {
+      setError(error.message || "Unable to save the student.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   const inputClass =
@@ -138,7 +164,7 @@ function StudentForm({ onAdd, onCancel, students = [] }) {
             required
           >
             {Array.from({ length: 10 }, (_, index) => (
-              <option key={index + 1} value={`Class ${index + 1}`}>
+              <option key={index + 1} value={String(index + 1)}>
                 Class {index + 1}
               </option>
             ))}
@@ -190,9 +216,10 @@ function StudentForm({ onAdd, onCancel, students = [] }) {
 
         <button
           type="submit"
-          className="rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-emerald-700"
+          disabled={saving}
+          className="rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Add Student
+          {saving ? "Saving..." : "Add Student"}
         </button>
       </form>
     </div>
