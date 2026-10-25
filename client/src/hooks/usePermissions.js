@@ -3,8 +3,9 @@ import { useAuth } from "../context/AuthContext";
 export function usePermissions() {
   const { user } = useAuth();
 
-  const isAdmin = user?.role === "Administrator";
-  const isTeacher = user?.role === "Teacher";
+  const role = user?.role?.toLowerCase();
+  const isAdmin = role === "administrator";
+  const isTeacher = role === "teacher";
 
   return {
     isAdmin,

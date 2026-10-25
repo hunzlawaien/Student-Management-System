@@ -1,35 +1,44 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+import { apiRequest } from "./AuthContext";
 
 const StudentContext = createContext(null);
+const API_URL = "/api/students";
 
-const API_URL = "http://localhost:5000/api/students";
-
-function StudentProvider({ children }) {
+export function StudentProvider({ children }) {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    async function fetchStudents() {
-      try {
-        const response = await fetch(API_URL);
+  const refreshStudents = useCallback(async () => {
+    setLoading(true);
+    setError("");
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch students");
-        }
+    try {
+      const data = await apiRequest(API_URL);
 
-        const data = await response.json();
-        setStudents(data);
-      } catch (error) {
-        console.error("Error fetching students:", error);
-        setError("Unable to load students. Please check the server.");
-      } finally {
-        setLoading(false);
+      const studentList = Array.isArray(data) ? data : data.students;
+
+      if (!Array.isArray(studentList)) {
+        throw new Error("The server returned an unexpected student list.");
       }
-    }
 
-    fetchStudents();
+      setStudents(studentList);
+    } catch (requestError) {
+      setError(requestError.message || "Unable to load students.");
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    refreshStudents();
+  }, [refreshStudents]);
 
   return (
     <StudentContext.Provider
@@ -39,6 +48,7 @@ function StudentProvider({ children }) {
         loading,
         error,
         setError,
+        refreshStudents,
       }}
     >
       {children}
@@ -46,7 +56,7 @@ function StudentProvider({ children }) {
   );
 }
 
-function useStudents() {
+export function useStudents() {
   const context = useContext(StudentContext);
 
   if (!context) {
@@ -55,5 +65,3 @@ function useStudents() {
 
   return context;
 }
-
-export { StudentProvider, useStudents };

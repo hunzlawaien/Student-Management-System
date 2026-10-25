@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { X } from "lucide-react";
+import { apiRequest } from "../context/AuthContext";
 
-const API_URL = "http://localhost:5000/api/students";
+const API_URL = "/api/students";
 
 function StudentForm({ onAdd, onCancel, students = [] }) {
   const [formData, setFormData] = useState({
@@ -10,6 +11,9 @@ function StudentForm({ onAdd, onCancel, students = [] }) {
     grade: "1",
     section: "A",
     rollNumber: "",
+    guardianName: "",
+    guardianPhone: "",
+    address: "",
   });
 
   const [error, setError] = useState("");
@@ -28,13 +32,17 @@ function StudentForm({ onAdd, onCancel, students = [] }) {
 
   async function handleSubmit(event) {
     event.preventDefault();
+    setError("");
 
     const student = {
       name: formData.name.trim(),
-      email: formData.email.trim(),
+      email: formData.email.trim().toLowerCase(),
       grade: Number(formData.grade),
       section: formData.section,
       rollNumber: formData.rollNumber.trim(),
+      guardianName: formData.guardianName.trim(),
+      guardianPhone: formData.guardianPhone.trim(),
+      address: formData.address.trim(),
     };
 
     if (
@@ -44,12 +52,12 @@ function StudentForm({ onAdd, onCancel, students = [] }) {
       !student.section ||
       !student.rollNumber
     ) {
-      setError("Please fill in all fields.");
+      setError("Please fill in all required fields.");
       return;
     }
 
     if (!/^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s.'-]*$/.test(student.name)) {
-      setError("Please enter a valid name.");
+      setError("Please enter a valid student name.");
       return;
     }
 
@@ -58,12 +66,29 @@ function StudentForm({ onAdd, onCancel, students = [] }) {
       return;
     }
 
+    if (
+      student.guardianName &&
+      !/^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s.'-]*$/.test(student.guardianName)
+    ) {
+      setError("Please enter a valid guardian name.");
+      return;
+    }
+
+    if (
+      student.guardianPhone &&
+      !/^[0-9+\-()\s]{7,20}$/.test(student.guardianPhone)
+    ) {
+      setError("Please enter a valid guardian phone number.");
+      return;
+    }
+
     const duplicateRollNumber = students.some(
       (existingStudent) =>
         String(existingStudent.rollNumber).trim().toLowerCase() ===
           student.rollNumber.toLowerCase() &&
         Number(existingStudent.grade) === student.grade &&
-        existingStudent.section === student.section,
+        String(existingStudent.section).toLowerCase() ===
+          student.section.toLowerCase(),
     );
 
     if (duplicateRollNumber) {
@@ -75,22 +100,13 @@ function StudentForm({ onAdd, onCancel, students = [] }) {
 
     try {
       setSaving(true);
-      setError("");
 
-      const response = await fetch(API_URL, {
+      const data = await apiRequest(API_URL, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify(student),
       });
 
-      const savedStudent = await response.json();
-
-      if (!response.ok) {
-        throw new Error(savedStudent.message || "Failed to add student.");
-      }
-
+      const savedStudent = data.student || data;
       await onAdd(savedStudent);
     } catch (error) {
       setError(error.message || "Unable to save the student.");
@@ -118,94 +134,160 @@ function StudentForm({ onAdd, onCancel, students = [] }) {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="name" className="mb-1 block text-sm font-medium">
-            Full Name *
-          </label>
-          <input
-            id="name"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            placeholder="Enter student's full name"
-            className={inputClass}
-            maxLength={100}
-            required
-          />
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <label htmlFor="name" className="mb-1 block text-sm font-medium">
+              Full Name *
+            </label>
+            <input
+              id="name"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              placeholder="Enter student's full name"
+              className={inputClass}
+              maxLength={100}
+              required
+            />
+          </div>
+
+          <div>
+            <label htmlFor="email" className="mb-1 block text-sm font-medium">
+              Email Address *
+            </label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="student@example.com"
+              className={inputClass}
+              maxLength={254}
+              required
+            />
+          </div>
+
+          <div>
+            <label htmlFor="grade" className="mb-1 block text-sm font-medium">
+              Class *
+            </label>
+            <select
+              id="grade"
+              name="grade"
+              value={formData.grade}
+              onChange={handleChange}
+              className={inputClass}
+              required
+            >
+              {Array.from({ length: 10 }, (_, index) => (
+                <option key={index + 1} value={String(index + 1)}>
+                  Class {index + 1}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="section" className="mb-1 block text-sm font-medium">
+              Section *
+            </label>
+            <select
+              id="section"
+              name="section"
+              value={formData.section}
+              onChange={handleChange}
+              className={inputClass}
+              required
+            >
+              <option value="A">Section A</option>
+              <option value="B">Section B</option>
+              <option value="C">Section C</option>
+            </select>
+          </div>
+
+          <div>
+            <label
+              htmlFor="rollNumber"
+              className="mb-1 block text-sm font-medium"
+            >
+              Roll Number *
+            </label>
+            <input
+              id="rollNumber"
+              name="rollNumber"
+              value={formData.rollNumber}
+              onChange={handleChange}
+              placeholder="e.g. 5A002"
+              className={inputClass}
+              maxLength={30}
+              required
+            />
+          </div>
         </div>
 
-        <div>
-          <label htmlFor="email" className="mb-1 block text-sm font-medium">
-            Email Address *
-          </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            value={formData.email}
-            onChange={handleChange}
-            placeholder="student@example.com"
-            className={inputClass}
-            maxLength={254}
-            required
-          />
-        </div>
+        <div className="border-t border-gray-200 pt-4">
+          <h4 className="mb-3 font-semibold text-gray-900">
+            Guardian Information
+          </h4>
 
-        <div>
-          <label htmlFor="grade" className="mb-1 block text-sm font-medium">
-            Class *
-          </label>
-          <select
-            id="grade"
-            name="grade"
-            value={formData.grade}
-            onChange={handleChange}
-            className={inputClass}
-            required
-          >
-            {Array.from({ length: 10 }, (_, index) => (
-              <option key={index + 1} value={String(index + 1)}>
-                Class {index + 1}
-              </option>
-            ))}
-          </select>
-        </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <label
+                htmlFor="guardianName"
+                className="mb-1 block text-sm font-medium"
+              >
+                Guardian Name
+              </label>
+              <input
+                id="guardianName"
+                name="guardianName"
+                value={formData.guardianName}
+                onChange={handleChange}
+                placeholder="Enter parent or guardian's name"
+                className={inputClass}
+                maxLength={100}
+              />
+            </div>
 
-        <div>
-          <label htmlFor="section" className="mb-1 block text-sm font-medium">
-            Section *
-          </label>
-          <select
-            id="section"
-            name="section"
-            value={formData.section}
-            onChange={handleChange}
-            className={inputClass}
-            required
-          >
-            <option value="A">Section A</option>
-            <option value="B">Section B</option>
-            <option value="C">Section C</option>
-          </select>
-        </div>
+            <div>
+              <label
+                htmlFor="guardianPhone"
+                className="mb-1 block text-sm font-medium"
+              >
+                Guardian Phone
+              </label>
+              <input
+                id="guardianPhone"
+                name="guardianPhone"
+                type="tel"
+                value={formData.guardianPhone}
+                onChange={handleChange}
+                placeholder="e.g. 03001234567"
+                className={inputClass}
+                maxLength={20}
+              />
+            </div>
 
-        <div>
-          <label
-            htmlFor="rollNumber"
-            className="mb-1 block text-sm font-medium"
-          >
-            Roll Number *
-          </label>
-          <input
-            id="rollNumber"
-            name="rollNumber"
-            value={formData.rollNumber}
-            onChange={handleChange}
-            placeholder="e.g. 5A002"
-            className={inputClass}
-            maxLength={30}
-            required
-          />
+            <div className="md:col-span-2">
+              <label
+                htmlFor="address"
+                className="mb-1 block text-sm font-medium"
+              >
+                Home Address
+              </label>
+              <textarea
+                id="address"
+                name="address"
+                value={formData.address}
+                onChange={handleChange}
+                placeholder="Enter student's home address"
+                className={inputClass}
+                rows={3}
+                maxLength={500}
+              />
+            </div>
+          </div>
         </div>
 
         {error && (

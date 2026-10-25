@@ -9,6 +9,9 @@ function EditForm({ student, students = [], onSave, onCancel }) {
     section: student.section || "A",
     rollNumber: student.rollNumber || "",
     status: student.status || "Active",
+    guardianName: student.guardianName || "",
+    guardianPhone: student.guardianPhone || "",
+    address: student.address || "",
   });
 
   const [error, setError] = useState("");
@@ -32,6 +35,9 @@ function EditForm({ student, students = [], onSave, onCancel }) {
     const name = formData.name.trim();
     const email = formData.email.trim().toLowerCase();
     const rollNumber = formData.rollNumber.trim();
+    const guardianName = formData.guardianName.trim();
+    const guardianPhone = formData.guardianPhone.trim();
+    const address = formData.address.trim();
 
     if (
       !name ||
@@ -45,12 +51,22 @@ function EditForm({ student, students = [], onSave, onCancel }) {
     }
 
     if (!/^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s.'-]*$/.test(name)) {
-      setError("Please enter a valid name.");
+      setError("Please enter a valid student name.");
       return;
     }
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setError("Please enter a valid email address.");
+      return;
+    }
+
+    if (guardianName && !/^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s.'-]*$/.test(guardianName)) {
+      setError("Please enter a valid guardian name.");
+      return;
+    }
+
+    if (guardianPhone && !/^[0-9+\-()\s]{7,20}$/.test(guardianPhone)) {
+      setError("Please enter a valid guardian phone number.");
       return;
     }
 
@@ -60,7 +76,8 @@ function EditForm({ student, students = [], onSave, onCancel }) {
       (existingStudent) =>
         String(existingStudent._id || existingStudent.id) !== studentId &&
         Number(existingStudent.grade) === Number(formData.grade) &&
-        existingStudent.section === formData.section &&
+        String(existingStudent.section).toLowerCase() ===
+          formData.section.toLowerCase() &&
         String(existingStudent.rollNumber).trim().toLowerCase() ===
           rollNumber.toLowerCase(),
     );
@@ -73,13 +90,17 @@ function EditForm({ student, students = [], onSave, onCancel }) {
     }
 
     const updatedStudent = {
-      ...student,
+      _id: student._id,
+      id: student.id,
       name,
       email,
       rollNumber,
       grade: Number(formData.grade),
       section: formData.section,
       status: formData.status,
+      guardianName,
+      guardianPhone,
+      address,
     };
 
     try {
@@ -233,6 +254,70 @@ function EditForm({ student, students = [], onSave, onCancel }) {
               <option value="Active">Active</option>
               <option value="Inactive">Inactive</option>
             </select>
+          </div>
+        </div>
+
+        <div className="mt-5 border-t border-gray-200 pt-4">
+          <h3 className="mb-3 font-semibold text-gray-900">
+            Guardian Information
+          </h3>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <label
+                htmlFor="edit-guardianName"
+                className="mb-1 block text-sm font-medium text-gray-700"
+              >
+                Guardian Name
+              </label>
+              <input
+                id="edit-guardianName"
+                name="guardianName"
+                value={formData.guardianName}
+                onChange={handleChange}
+                placeholder="Parent or guardian's name"
+                className={inputClass}
+                maxLength={100}
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="edit-guardianPhone"
+                className="mb-1 block text-sm font-medium text-gray-700"
+              >
+                Guardian Phone
+              </label>
+              <input
+                id="edit-guardianPhone"
+                name="guardianPhone"
+                type="tel"
+                value={formData.guardianPhone}
+                onChange={handleChange}
+                placeholder="e.g. 03001234567"
+                className={inputClass}
+                maxLength={20}
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label
+                htmlFor="edit-address"
+                className="mb-1 block text-sm font-medium text-gray-700"
+              >
+                Home Address
+              </label>
+              <textarea
+                id="edit-address"
+                name="address"
+                value={formData.address}
+                onChange={handleChange}
+                placeholder="Enter student's home address"
+                className={inputClass}
+                rows={3}
+                maxLength={500}
+              />
+            </div>
           </div>
         </div>
 

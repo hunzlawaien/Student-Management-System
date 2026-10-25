@@ -17,7 +17,14 @@ function Dashboard() {
   ).length;
 
   const recentRegistrations = [...students]
-    .sort((a, b) => Number(b.id) - Number(a.id))
+    .sort((a, b) => {
+      const idA = String(a._id ?? a.id ?? "");
+      const idB = String(b._id ?? b.id ?? "");
+
+      return idB.localeCompare(idA, undefined, {
+        numeric: true,
+      });
+    })
     .slice(0, 5);
 
   const stats = [
@@ -43,7 +50,6 @@ function Dashboard() {
 
   return (
     <div className="space-y-8">
-      {/* Dashboard heading */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">
           {isAdmin ? "Administrator Dashboard" : "Teacher Dashboard"}
@@ -110,8 +116,11 @@ function Dashboard() {
               </thead>
 
               <tbody className="divide-y divide-gray-100">
-                {recentRegistrations.map((student) => (
-                  <tr key={student.id} className="hover:bg-gray-50">
+                {recentRegistrations.map((student, index) => (
+                  <tr
+                    key={student._id ?? student.id ?? `student-${index}`}
+                    className="hover:bg-gray-50"
+                  >
                     <td className="px-6 py-4 font-medium text-gray-800">
                       {student.name}
                     </td>

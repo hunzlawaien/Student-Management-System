@@ -11,6 +11,7 @@ const allowedFields = [
   "gender",
   "dateOfBirth",
   "guardianName",
+  "guardianPhone",
   "address",
   "status",
 ];
@@ -52,7 +53,6 @@ function validateStudentData(data, isUpdate = false) {
   return null;
 }
 
-// Get all students
 async function getStudents(req, res) {
   try {
     const students = await Student.find().sort({ createdAt: -1 });
@@ -65,7 +65,6 @@ async function getStudents(req, res) {
   }
 }
 
-// Get one student
 async function getStudentById(req, res) {
   try {
     if (!mongoose.isValidObjectId(req.params.id)) {
@@ -87,7 +86,6 @@ async function getStudentById(req, res) {
   }
 }
 
-// Add a student
 async function createStudent(req, res) {
   const validationError = validateStudentData(req.body);
 
@@ -116,7 +114,6 @@ async function createStudent(req, res) {
   }
 }
 
-// Update a student
 async function updateStudent(req, res) {
   const validationError = validateStudentData(req.body, true);
 
@@ -161,7 +158,6 @@ async function updateStudent(req, res) {
   }
 }
 
-// Delete a student
 async function deleteStudent(req, res) {
   try {
     if (!mongoose.isValidObjectId(req.params.id)) {

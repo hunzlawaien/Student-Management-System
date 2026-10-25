@@ -72,6 +72,13 @@ const studentSchema = new mongoose.Schema(
       maxlength: [100, "Guardian name cannot exceed 100 characters"],
     },
 
+    guardianPhone: {
+      type: String,
+      trim: true,
+      default: "",
+      maxlength: [20, "Guardian phone cannot exceed 20 characters"],
+    },
+
     address: {
       type: String,
       trim: true,

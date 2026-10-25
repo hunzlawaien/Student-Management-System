@@ -13,17 +13,18 @@ function Login() {
   });
 
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   function handleChange(event) {
     const { name, value } = event.target;
 
-    setFormData({
-      ...formData,
+    setFormData((previousData) => ({
+      ...previousData,
       [name]: value,
-    });
+    }));
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
     setError("");
 
@@ -32,14 +33,22 @@ function Login() {
       return;
     }
 
-    const result = login(formData.email, formData.password);
+    setIsSubmitting(true);
 
-    if (!result.success) {
-      setError(result.message);
-      return;
+    try {
+      const result = await login(formData.email.trim(), formData.password);
+
+      if (!result.success) {
+        setError(result.message || "Unable to sign in.");
+        return;
+      }
+
+      navigate("/");
+    } catch {
+      setError("Unable to sign in. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    navigate("/");
   }
 
   return (
@@ -74,7 +83,9 @@ function Login() {
               onChange={handleChange}
               placeholder="you@example.com"
               autoComplete="email"
-              className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+              required
+              disabled={isSubmitting}
+              className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 disabled:bg-gray-100"
             />
           </div>
 
@@ -94,7 +105,9 @@ function Login() {
               onChange={handleChange}
               placeholder="Enter your password"
               autoComplete="current-password"
-              className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+              required
+              disabled={isSubmitting}
+              className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 disabled:bg-gray-100"
             />
           </div>
 
@@ -106,9 +119,10 @@ function Login() {
 
           <button
             type="submit"
-            className="w-full rounded-lg bg-emerald-600 px-4 py-3 font-medium text-white transition hover:bg-emerald-700"
+            disabled={isSubmitting}
+            className="w-full rounded-lg bg-emerald-600 px-4 py-3 font-medium text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Sign In
+            {isSubmitting ? "Signing in..." : "Sign In"}
           </button>
         </form>
 

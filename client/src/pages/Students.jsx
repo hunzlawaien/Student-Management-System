@@ -2,15 +2,20 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Users } from "lucide-react";
 import { useStudents } from "../context/StudentContext";
+import { apiRequest } from "../context/AuthContext";
 import StudentForm from "../components/StudentForm";
 import StudentFilters from "../components/StudentFilters";
 import StudentTable from "../components/StudentTable";
 import EditForm from "../components/EditForm";
 import { usePermissions } from "../hooks/usePermissions";
 
+const API_URL = `${import.meta.env.VITE_API_URL}/api/students`;
+
 function Students() {
   const { students, setStudents } = useStudents();
   const navigate = useNavigate();
+
+  const { canAddStudent, canEditStudent, canDeleteStudent } = usePermissions();
 
   const [currentPage, setCurrentPage] = useState(1);
   const studentsPerPage = 10;
@@ -18,11 +23,10 @@ function Students() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedGrade, setSelectedGrade] = useState("All");
   const [selectedSection, setSelectedSection] = useState("All");
+
   const [showForm, setShowForm] = useState(false);
   const [editingStudent, setEditingStudent] = useState(null);
   const [error, setError] = useState("");
-
-  const { canAddStudent, canEditStudent, canDeleteStudent } = usePermissions();
 
   const handleAddStudent = (savedStudent) => {
     setStudents((currentStudents) => [savedStudent, ...currentStudents]);
@@ -46,63 +50,79 @@ function Students() {
         throw new Error("Student ID is missing. Cannot delete this record.");
       }
 
-      const response = await fetch(
-        `http://localhost:5000/api/students/${studentId}`,
-        {
-          method: "DELETE",
-        },
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to delete student.");
-      }
+      await apiRequest(`${API_URL}/${studentId}`, {
+        method: "DELETE",
+      });
 
       setStudents((currentStudents) =>
         currentStudents.filter(
           (student) => String(student._id || student.id) !== String(studentId),
         ),
       );
+
+      if (
+        editingStudent &&
+        String(editingStudent._id || editingStudent.id) === String(studentId)
+      ) {
+        setEditingStudent(null);
+      }
     } catch (error) {
       setError(error.message || "Unable to delete student.");
     }
   };
 
-  const handleSaveEdit = async (updatedStudent) => {
-    const studentId = updatedStudent._id || updatedStudent.id;
+  async function handleSaveEdit(updatedStudent) {
+    try {
+      const studentId = updatedStudent._id || updatedStudent.id;
 
-    const response = await fetch(
-      `http://localhost:5000/api/students/${studentId}`,
-      {
+      if (!studentId) {
+        throw new Error("Student ID is missing. Cannot update this record.");
+      }
+
+      const studentData = {
+        name: updatedStudent.name,
+        email: updatedStudent.email,
+        grade: updatedStudent.grade,
+        section: updatedStudent.section,
+        rollNumber: updatedStudent.rollNumber,
+        status: updatedStudent.status,
+        guardianName: updatedStudent.guardianName || "",
+        guardianPhone: updatedStudent.guardianPhone || "",
+        address: updatedStudent.address || "",
+      };
+
+      const data = await apiRequest(`${API_URL}/${studentId}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(updatedStudent),
-      },
-    );
+        body: JSON.stringify(studentData),
+      });
 
-    const data = await response.json();
+      const savedStudent = data.student || data;
 
-    if (!response.ok) {
-      throw new Error(data.message || "Failed to update student.");
+      setStudents((currentStudents) =>
+        currentStudents.map((student) =>
+          String(student._id || student.id) === String(studentId)
+            ? savedStudent
+            : student,
+        ),
+      );
+
+      setEditingStudent(null);
+      setError("");
+    } catch (error) {
+      setError(error.message || "Unable to update student.");
+      throw error;
     }
-
-    setStudents((currentStudents) =>
-      currentStudents.map((student) =>
-        String(student._id || student.id) === String(studentId)
-          ? data
-          : student,
-      ),
-    );
-
-    setEditingStudent(null);
-    setError("");
-  };
+  }
 
   const handleViewStudent = (student) => {
-    navigate(`/students/${student._id || student.id}`);
+    const studentId = student._id || student.id;
+
+    if (!studentId) {
+      setError("Student ID is missing. Cannot open this record.");
+      return;
+    }
+
+    navigate(`/students/${studentId}`);
   };
 
   const filteredStudents = students.filter((student) => {
@@ -113,6 +133,8 @@ function Students() {
       student.email,
       student.rollNumber,
       student.section,
+      student.guardianName,
+      student.guardianPhone,
     ].some((value) =>
       String(value || "")
         .toLowerCase()
@@ -151,7 +173,6 @@ function Students() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Students</h1>
-
           <p className="mt-1 text-sm text-gray-500">
             Manage student records, academic details, and enrollment.
           </p>
@@ -160,7 +181,11 @@ function Students() {
         {canAddStudent && (
           <button
             type="button"
-            onClick={() => setShowForm(true)}
+            onClick={() => {
+              setError("");
+              setShowForm(true);
+              setEditingStudent(null);
+            }}
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-emerald-700"
           >
             <Plus size={18} />
@@ -196,12 +221,28 @@ function Students() {
           student={editingStudent}
           students={students}
           onSave={handleSaveEdit}
-          onCancel={() => setEditingStudent(null)}
+          onCancel={() => {
+            setEditingStudent(null);
+            setError("");
+          }}
         />
       )}
 
       {error && (
-        <p className="rounded-lg bg-red-50 p-3 text-sm text-red-600">{error}</p>
+        <div
+          role="alert"
+          className="flex items-start justify-between gap-3 rounded-lg bg-red-50 p-3 text-sm text-red-600"
+        >
+          <p>{error}</p>
+
+          <button
+            type="button"
+            onClick={() => setError("")}
+            className="font-medium hover:text-red-800"
+          >
+            Dismiss
+          </button>
+        </div>
       )}
 
       <StudentFilters

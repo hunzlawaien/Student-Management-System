@@ -33,18 +33,30 @@ function StudentDetails() {
     );
   }
 
-  const details = [
+  const studentDetails = [
     { label: "Roll Number", value: student.rollNumber },
-    { label: "Class", value: student.grade },
+    { label: "Class", value: student.grade ? `Class ${student.grade}` : "" },
     { label: "Section", value: student.section },
     { label: "Email", value: student.email },
-    { label: "Phone", value: student.phone },
+    { label: "Student Phone", value: student.phone },
     { label: "Gender", value: student.gender },
-    { label: "Date of Birth", value: student.dateOfBirth },
-    { label: "Address", value: student.address },
+    {
+      label: "Date of Birth",
+      value: student.dateOfBirth
+        ? new Date(student.dateOfBirth).toLocaleDateString()
+        : "",
+    },
+  ].filter(
+    (detail) =>
+      detail.value !== undefined &&
+      detail.value !== null &&
+      detail.value !== "",
+  );
+
+  const guardianDetails = [
     { label: "Guardian Name", value: student.guardianName },
     { label: "Guardian Phone", value: student.guardianPhone },
-    { label: "Admission Date", value: student.admissionDate },
+    { label: "Home Address", value: student.address },
   ].filter(
     (detail) =>
       detail.value !== undefined &&
@@ -53,6 +65,32 @@ function StudentDetails() {
   );
 
   const isInactive = student.status === "Inactive";
+
+  function renderDetails(details) {
+    if (details.length === 0) {
+      return (
+        <p className="text-sm text-gray-500">
+          No information has been added yet.
+        </p>
+      );
+    }
+
+    return (
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {details.map((detail) => (
+          <div
+            key={detail.label}
+            className="rounded-lg border border-gray-100 bg-gray-50 p-4"
+          >
+            <p className="text-sm text-gray-500">{detail.label}</p>
+            <p className="mt-1 break-words font-medium text-gray-900">
+              {detail.value}
+            </p>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -74,9 +112,7 @@ function StudentDetails() {
 
             <div className="flex-1">
               <p className="text-sm text-emerald-100">Student Profile</p>
-
               <h1 className="mt-1 text-2xl font-bold">{student.name}</h1>
-
               <p className="mt-1 text-sm text-emerald-100">
                 Roll Number: {student.rollNumber || "Not provided"}
               </p>
@@ -94,31 +130,28 @@ function StudentDetails() {
           </div>
         </div>
 
-        <div className="p-6 sm:p-8">
-          <div className="mb-5 flex items-center gap-2">
-            <UserRound size={20} className="text-emerald-700" />
-            <h2 className="text-lg font-semibold text-gray-900">
-              Student Information
+        <div className="space-y-8 p-6 sm:p-8">
+          <section>
+            <div className="mb-5 flex items-center gap-2">
+              <UserRound size={20} className="text-emerald-700" />
+              <h2 className="text-lg font-semibold text-gray-900">
+                Student Information
+              </h2>
+            </div>
+
+            {renderDetails(studentDetails)}
+          </section>
+
+          <section className="border-t border-gray-200 pt-6">
+            <h2 className="mb-5 text-lg font-semibold text-gray-900">
+              Guardian Information
             </h2>
-          </div>
 
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {details.map((detail) => (
-              <div
-                key={detail.label}
-                className="rounded-lg border border-gray-100 bg-gray-50 p-4"
-              >
-                <p className="text-sm text-gray-500">{detail.label}</p>
-
-                <p className="mt-1 break-words font-medium text-gray-900">
-                  {detail.value}
-                </p>
-              </div>
-            ))}
-          </div>
+            {renderDetails(guardianDetails)}
+          </section>
 
           {student.email && (
-            <div className="mt-6 flex items-center gap-3 rounded-lg bg-emerald-50 p-4">
+            <div className="flex items-center gap-3 rounded-lg bg-emerald-50 p-4">
               <Mail size={20} className="shrink-0 text-emerald-700" />
               <div className="min-w-0">
                 <p className="text-xs text-gray-500">Email Address</p>

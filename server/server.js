@@ -4,26 +4,40 @@ require("dotenv").config();
 
 const connectDB = require("./config/db");
 const studentRoutes = require("./routes/studentRoutes");
+const authRoutes = require("./routes/authRoutes");
 
 const app = express();
 
 app.use(cors());
 app.use(express.json({ limit: "10kb" }));
 
+// Connect to MongoDB before handling API requests.
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    console.error("Database connection failed:", error.message);
+
+    res.status(500).json({
+      message: "Database connection failed",
+    });
+  }
+});
+
 app.get("/", (req, res) => {
   res.status(200).send("Student Management System API is running");
 });
 
 app.use("/api/students", studentRoutes);
+app.use("/api/auth", authRoutes);
 
-// Handle unknown routes
 app.use((req, res) => {
   res.status(404).json({
     message: "Route not found",
   });
 });
 
-// Handle invalid JSON and other middleware errors
 app.use((error, req, res, next) => {
   if (error.type === "entity.parse.failed") {
     return res.status(400).json({
@@ -44,19 +58,12 @@ app.use((error, req, res, next) => {
   });
 });
 
-const PORT = process.env.PORT || 5000;
+module.exports = app;
 
-async function startServer() {
-  try {
-    await connectDB();
+if (require.main === module) {
+  const PORT = process.env.PORT || 5000;
 
-    app.listen(PORT, () => {
-      console.log(`Server is running on port ${PORT}`);
-    });
-  } catch (error) {
-    console.error("Failed to start server:", error.message);
-    process.exit(1);
-  }
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
 }
-
-startServer();

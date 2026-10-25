@@ -1,87 +1,161 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 
 const AuthContext = createContext(null);
 
+const API_URL = "/api/auth";
+const TOKEN_KEY = "smsToken";
+const USER_KEY = "smsUser";
+
 function getSavedUser() {
   try {
-    const savedUser = localStorage.getItem("currentUser");
+    const savedUser = localStorage.getItem(USER_KEY);
     return savedUser ? JSON.parse(savedUser) : null;
   } catch {
     return null;
   }
 }
 
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(getSavedUser);
+export function getAuthToken() {
+  return localStorage.getItem(TOKEN_KEY);
+}
 
-  function login(email, password) {
-    const savedUsers = JSON.parse(
-      localStorage.getItem("registeredUsers") || "[]",
-    );
+export async function apiRequest(url, options = {}) {
+  const token = getAuthToken();
 
-    const matchedUser = savedUsers.find(
-      (savedUser) =>
-        savedUser.email.toLowerCase() === email.trim().toLowerCase() &&
-        savedUser.password === password,
-    );
+  const headers = {
+    ...(options.body ? { "Content-Type": "application/json" } : {}),
+    ...options.headers,
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
 
-    if (!matchedUser) {
-      return { success: false, message: "Invalid email or password." };
-    }
+  const response = await fetch(url, {
+    ...options,
+    headers,
+  });
 
-    const loggedInUser = {
-      name: matchedUser.name,
-      email: matchedUser.email,
-      role: matchedUser.role,
-    };
+  const data =
+    response.status === 204 ? {} : await response.json().catch(() => ({}));
 
-    localStorage.setItem("currentUser", JSON.stringify(loggedInUser));
-    setUser(loggedInUser);
-
-    return { success: true };
+  if (!response.ok) {
+    throw new Error(data.message || "Something went wrong. Please try again.");
   }
 
-  function register(userData) {
-    const savedUsers = JSON.parse(
-      localStorage.getItem("registeredUsers") || "[]",
-    );
+  return data;
+}
 
-    const emailExists = savedUsers.some(
-      (savedUser) =>
-        savedUser.email.toLowerCase() === userData.email.trim().toLowerCase(),
-    );
+function saveSession(token, user) {
+  localStorage.setItem(TOKEN_KEY, token);
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
+}
 
-    if (emailExists) {
-      return { success: false, message: "This email is already registered." };
+function clearSession() {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
+}
+
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(getSavedUser);
+  const [authLoading, setAuthLoading] = useState(() => Boolean(getAuthToken()));
+
+  useEffect(() => {
+    const token = getAuthToken();
+
+    if (!token) {
+      setAuthLoading(false);
+      return;
     }
 
-    const newUser = {
-      name: userData.name.trim(),
-      email: userData.email.trim(),
-      password: userData.password,
-      role: userData.role,
+    let cancelled = false;
+
+    async function loadCurrentUser() {
+      try {
+        const data = await apiRequest(`${API_URL}/me`);
+
+        if (!cancelled) {
+          setUser(data.user);
+          localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+        }
+      } catch {
+        if (!cancelled) {
+          clearSession();
+          setUser(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setAuthLoading(false);
+        }
+      }
+    }
+
+    loadCurrentUser();
+
+    return () => {
+      cancelled = true;
     };
+  }, []);
 
-    localStorage.setItem(
-      "registeredUsers",
-      JSON.stringify([...savedUsers, newUser]),
-    );
+  async function login(email, password) {
+    try {
+      const data = await apiRequest(`${API_URL}/login`, {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      });
 
-    return { success: true };
+      saveSession(data.token, data.user);
+      setUser(data.user);
+
+      return { success: true, user: data.user };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message || "Unable to log in.",
+      };
+    }
+  }
+
+  async function register(userData) {
+    try {
+      const data = await apiRequest(`${API_URL}/register`, {
+        method: "POST",
+        body: JSON.stringify({
+          name: userData.name,
+          email: userData.email,
+          password: userData.password,
+        }),
+      });
+
+      return {
+        success: true,
+        message: data.message || "Registration successful.",
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message || "Unable to register.",
+      };
+    }
   }
 
   function logout() {
-    localStorage.removeItem("currentUser");
+    clearSession();
     setUser(null);
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout }}>
+    <AuthContext.Provider
+      value={{ user, login, register, logout, authLoading }}
+    >
       {children}
     </AuthContext.Provider>
   );
 }
 
 export function useAuth() {
-  return useContext(AuthContext);
+  const context = useContext(AuthContext);
+
+  if (!context) {
+    throw new Error("useAuth must be used inside AuthProvider");
+  }
+
+  return context;
 }
