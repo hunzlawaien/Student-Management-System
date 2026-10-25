@@ -9,7 +9,7 @@ import StudentTable from "../components/StudentTable";
 import EditForm from "../components/EditForm";
 import { usePermissions } from "../hooks/usePermissions";
 
-const API_URL = `${import.meta.env.VITE_API_URL}/api/students`;
+const API_URL = "/api/students";
 
 function Students() {
   const { students, setStudents } = useStudents();
